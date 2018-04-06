@@ -9,19 +9,38 @@ import "C"
 
 func main() {
 	script := `
-json = cjson()
-keys = json.decode(KEYS)
+	-- generate a private keyring and other fictional public keys
 
-data = DATA
-nonce=randombytes(32)
-
-encrypt_session = exchange_session_x25519(
-	  decode_b58(keys.device_secret_key),
-	  decode_b58(keys.user_public_key))
-
-enc = encrypt_norx(encrypt_session, nonce, data)
-
-print (encode_b58(nonce) .. encode_b58(enc))`
+	-- run with: zenroom keygen.zen
+	
+	-- any combination of public and private keys generated this way and
+	-- exchanged among different people will lead to the same secret which
+	-- is then usable for asymmetric encryption.
+	
+	octet = require'octet'
+	json = require'json'
+	ecdh = require'ecdh'
+	keyring = ecdh.new()
+	keyring:keygen()
+	
+	recipients={'jaromil','francesca','jim','mark','paulus','mayo'}
+	keys={}
+	for i,name in ipairs(recipients) do
+	   kk = ecdh.new()
+	   kk:keygen()
+	   keys[name] = kk:public():base64()
+	   assert(kk:checkpub(kk:public()))
+	end
+	
+	
+	keypairs = json.encode({
+		  keyring={public=keyring:public():base64(),
+				   secret=keyring:private():base64()},
+		  recipients=keys})
+	print(keypairs)
+	
+	
+	`
 
 	keys := `
 {
